@@ -1321,6 +1321,23 @@ class UUIDSnippetWithRelations(index.Indexed, ClusterableModel):
 register_snippet(UUIDSnippetWithRelations)
 
 
+class ReorderableUUIDSnippet(models.Model):
+    """A snippet with a UUID primary key, used as its own sort order field."""
+
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    text = models.CharField(max_length=255)
+
+    sort_order_field = "uuid"
+
+    panels = [FieldPanel("text")]
+
+    def __str__(self):
+        return self.text
+
+
+register_snippet(ReorderableUUIDSnippet)
+
+
 class AdvertWithTabbedInterface(models.Model):
     url = models.URLField(null=True, blank=True)
     text = models.CharField(max_length=255)

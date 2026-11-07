@@ -32,6 +32,7 @@ export class OrderableController extends Controller<HTMLElement> {
     container: { default: '', type: String },
     message: { default: '', type: String },
     url: String,
+    urlPlaceholder: { default: '999999', type: String },
   };
 
   declare readonly handleTarget: HTMLElement;
@@ -54,6 +55,8 @@ export class OrderableController extends Controller<HTMLElement> {
   declare messageValue: string;
   /** Base URL template to use for submitting an updated order for a specific item. */
   declare urlValue: string;
+  /** Placeholder within the URL value that gets replaced with the item's id. */
+  declare urlPlaceholderValue: string;
 
   order: string[];
   declare sortable: Sortable;
@@ -179,7 +182,7 @@ export class OrderableController extends Controller<HTMLElement> {
     label: string;
     newIndex?: number;
   }) {
-    let url = this.urlValue.replace('999999', id);
+    let url = this.urlValue.replace(this.urlPlaceholderValue, id);
     if (newIndex !== undefined) {
       url += '?position=' + newIndex;
     }

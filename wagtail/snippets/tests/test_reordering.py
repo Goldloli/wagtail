@@ -4,7 +4,7 @@ from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 
-from wagtail.test.testapp.models import FullFeaturedSnippet
+from wagtail.test.testapp.models import FullFeaturedSnippet, ReorderableUUIDSnippet
 from wagtail.test.utils import WagtailTestUtils
 
 
@@ -63,6 +63,10 @@ class TestIndexViewReordering(WagtailTestUtils, TestCase):
         self.assertEqual(
             table.get("data-w-orderable-url-value"),
             reverse(self.get_url_name("reorder"), args=[999999]),
+        )
+        self.assertEqual(
+            table.get("data-w-orderable-url-placeholder-value"),
+            "999999",
         )
 
         # The bulk actions column should not be present
@@ -160,6 +164,48 @@ class TestIndexViewReordering(WagtailTestUtils, TestCase):
 
         self.test_header_button_rendered()
         self.test_show_ordering_column()
+
+
+class TestIndexViewReorderingWithUUIDPrimaryKey(WagtailTestUtils, TestCase):
+    """
+    Test reordering support for snippets whose sort order field is a UUID
+    primary key, as in https://github.com/wagtail/wagtail/issues/14789.
+    """
+
+    def setUp(self):
+        self.user = self.login()
+        ReorderableUUIDSnippet.objects.create(text="Item 1")
+        ReorderableUUIDSnippet.objects.create(text="Item 2")
+
+    def get_url_name(self, name):
+        return ReorderableUUIDSnippet.snippet_viewset.get_url_name(name)
+
+    def test_listing_view(self):
+        # The listing view used to raise a NoReverseMatch when rendering the
+        # header buttons, because the reorder URL was always reversed with the
+        # integer placeholder 999999, which is not valid for a UUID pk
+        response = self.client.get(reverse(self.get_url_name("list")))
+        self.assertEqual(response.status_code, 200)
+
+    def test_reorder_url_uses_uuid_placeholder(self):
+        response = self.client.get(
+            reverse(self.get_url_name("list")) + "?ordering=uuid"
+        )
+        self.assertEqual(response.status_code, 200)
+        soup = self.get_soup(response.content)
+        table = soup.select_one("main table")
+        self.assertIsNotNone(table)
+        self.assertEqual(table.get("data-controller"), "w-orderable")
+
+        reorder_url = table.get("data-w-orderable-url-value")
+        placeholder = table.get("data-w-orderable-url-placeholder-value")
+        self.assertIsNotNone(placeholder)
+        # The reorder URL must be reversible, and the placeholder within it
+        # must be exposed to the client so that it can be replaced with the
+        # primary key of the row being moved
+        self.assertEqual(
+            reorder_url, reverse(self.get_url_name("reorder"), args=(placeholder,))
+        )
 
 
 class TestCreateViewReordering(WagtailTestUtils, TestCase):

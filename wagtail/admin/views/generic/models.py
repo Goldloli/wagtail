@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.admin.utils import label_for_field, quote, unquote
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import (
@@ -136,6 +138,7 @@ class IndexView(
         if self.show_ordering_column:
             kwargs["sort_order_field"] = self.sort_order_field
             kwargs["reorder_url"] = self.get_reorder_url()
+            kwargs["reorder_url_placeholder"] = self.reorder_url_placeholder_pk
         return kwargs
 
     def _annotate_queryset_updated_at(self, queryset):
@@ -320,9 +323,24 @@ class IndexView(
         if self.delete_url_name and self.user_has_permission("delete"):
             return reverse(self.delete_url_name, args=(quote(instance.pk),))
 
+    @cached_property
+    def reorder_url_placeholder_pk(self):
+        """
+        A placeholder primary key used to build the reorder URL, which the
+        client-side ordering implementation replaces with the actual primary
+        key of the row being moved. The value must be valid for the URL path
+        converter used for the model's primary key, so that reverse()
+        succeeds; only UUID primary keys need a specific value.
+        """
+        if isinstance(self.model._meta.pk, models.UUIDField):
+            return uuid.uuid4()
+        return 999999
+
     def get_reorder_url(self):
         if self.reorder_url_name and self.user_has_permission("change"):
-            return reverse(self.reorder_url_name, args=(999999,))
+            return reverse(
+                self.reorder_url_name, args=(self.reorder_url_placeholder_pk,)
+            )
 
     def get_add_url(self):
         if self.add_url_name and self.user_has_permission("add"):

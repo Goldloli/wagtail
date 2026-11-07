@@ -268,5 +268,51 @@ describe('OrderableController', () => {
         type: 'success',
       });
     });
+
+    it('should support a custom URL placeholder, as used for UUID primary keys', async () => {
+      const [controller] = await setup(`
+  <form>
+    <input name="csrfmiddlewaretoken" value="__MOCK_CSRF__" />
+    <ul
+      class="orderable"
+      id="orderable"
+      data-controller="w-orderable"
+      data-w-orderable-active-class="is-active"
+      data-w-orderable-message-value="'__LABEL__' has been updated!"
+      data-w-orderable-url-value="/base/url/00000000-0000-0000-0000-000000000000"
+      data-w-orderable-url-placeholder-value="00000000-0000-0000-0000-000000000000"
+    >
+      <li id="item-73" data-w-orderable-target="item" data-w-orderable-item-id="11111111-1111-1111-1111-111111111111" data-w-orderable-item-label="Beef">
+        <button class="handle" type="button" data-w-orderable-target="handle" data-action="keydown.up->w-orderable#up:prevent keydown.down->w-orderable#down:prevent keydown.enter->w-orderable#apply">--</button>
+        Item 73
+      </li>
+      <li id="item-75" data-w-orderable-target="item" data-w-orderable-item-id="22222222-2222-2222-2222-222222222222" data-w-orderable-item-label="Cheese">
+        <button class="handle" type="button" data-w-orderable-target="handle" data-action="keydown.up->w-orderable#up:prevent keydown.down->w-orderable#down:prevent keydown.enter->w-orderable#apply">--</button>
+        Item 75
+      </li>
+      <li id="item-93" data-w-orderable-target="item" data-w-orderable-item-id="33333333-3333-3333-3333-333333333333" data-w-orderable-item-label="Santa">
+        <button class="handle" type="button" data-w-orderable-target="handle" data-action="keydown.up->w-orderable#up:prevent keydown.down->w-orderable#down:prevent keydown.enter->w-orderable#apply">--</button>
+        Item 93
+      </li>
+    </ul>
+  </form>`);
+
+      expect(controller.sortable).toBeInstanceOf(Object);
+      expect(global.fetch).not.toHaveBeenCalled();
+
+      const handle = document.querySelector('#item-75 button.handle');
+
+      fetch.mockResponseSuccessJSON('');
+
+      await Promise.resolve(handle.dispatchEvent(new KeyboardEvent(...ENTER)));
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/base/url/22222222-2222-2222-2222-222222222222?position=1',
+        {
+          method: 'POST',
+          headers: { 'x-xsrf-token': 'potato' },
+        },
+      );
+    });
   });
 });

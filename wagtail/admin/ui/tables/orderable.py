@@ -19,10 +19,18 @@ class OrderableTableMixin:
 
     success_message = gettext_lazy("'%(page_title)s' has been moved successfully.")
 
-    def __init__(self, *args, sort_order_field=None, reorder_url=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        sort_order_field=None,
+        reorder_url=None,
+        reorder_url_placeholder=None,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.sort_order_field = sort_order_field
         self.reorder_url = reorder_url
+        self.reorder_url_placeholder = reorder_url_placeholder or "999999"
         if self.reorder_url:
             self._add_ordering_column()
 
@@ -53,6 +61,7 @@ class OrderableTableMixin:
                 "data-w-orderable-container-value": "tbody",
                 "data-w-orderable-message-value": self.get_success_message(),
                 "data-w-orderable-url-value": self.reorder_url,
+                "data-w-orderable-url-placeholder-value": self.reorder_url_placeholder,
             }
         return attrs
 

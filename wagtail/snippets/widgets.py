@@ -2,12 +2,23 @@ from django import forms
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
 from django.urls.exceptions import NoReverseMatch
-from django.utils.functional import cached_property
+from django.utils.functional import cached_property, lazy
 from django.utils.translation import gettext_lazy as _
 
 from wagtail.admin.staticfiles import versioned_static
 from wagtail.admin.telepath import register
 from wagtail.admin.widgets import BaseChooser, BaseChooserAdapter
+
+
+def _object_label(format_string, object_name):
+    return format_string % {"object": object_name}
+
+
+# Keep the %-interpolation lazy so that the labels are resolved against the
+# current user's language at render time, rather than the language active when
+# the widget is instantiated. See
+# https://github.com/wagtail/wagtail/issues/14709
+object_label = lazy(_object_label, str)
 
 
 class AdminSnippetChooser(BaseChooser):
@@ -19,9 +30,9 @@ class AdminSnippetChooser(BaseChooser):
         if model is not None:
             self.model = model
         name = self.model._meta.verbose_name
-        self.choose_one_text = _("Choose %(object)s") % {"object": name}
-        self.choose_another_text = _("Choose another %(object)s") % {"object": name}
-        self.link_to_chosen_text = _("Edit this %(object)s") % {"object": name}
+        self.choose_one_text = object_label(_("Choose %(object)s"), name)
+        self.choose_another_text = object_label(_("Choose another %(object)s"), name)
+        self.link_to_chosen_text = object_label(_("Edit this %(object)s"), name)
 
         super().__init__(**kwargs)
 
